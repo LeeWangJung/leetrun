@@ -1,0 +1,492 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bức thư dành riêng cho bạn</title>
+
+  <style>
+    /* =========================
+       1. CÀI ĐẶT CHUNG
+       ========================= */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: Georgia, "Times New Roman", serif;
+    }
+
+    body {
+      background: #171322;
+    }
+
+    /* =========================
+       2. MÀN HÌNH PHONG THƯ
+       ========================= */
+    .envelope-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background:
+        radial-gradient(circle at center, #51405e 0%, #241b30 55%, #120f1a 100%);
+      transition: opacity 1.2s ease, visibility 1.2s ease;
+    }
+
+    .envelope-screen.hide {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .envelope-wrap {
+      position: relative;
+      width: min(330px, 82vw);
+      text-align: center;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      animation: floatEnvelope 2.5s ease-in-out infinite;
+      outline: none;
+    }
+
+    .envelope-wrap:focus-visible {
+      outline: 2px solid #ffe3b8;
+      outline-offset: 14px;
+      border-radius: 8px;
+    }
+
+    .hint {
+      color: #f8e8d4;
+      font-size: 16px;
+      letter-spacing: 2px;
+      margin-bottom: 32px;
+      opacity: 0.9;
+    }
+
+    .envelope {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1.5 / 1;
+      background: #e8c7a5;
+      border-radius: 5px;
+      box-shadow: 0 18px 45px #0008;
+      perspective: 800px;
+    }
+
+    /* Hai cánh phong bì */
+    .envelope::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: #f3d8b8;
+      clip-path: polygon(0 0, 50% 58%, 100% 0);
+      z-index: 3;
+    }
+
+    .envelope::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: #d6ae87;
+      clip-path: polygon(0 100%, 0 0, 50% 58%, 100% 0, 100% 100%);
+      z-index: 2;
+    }
+
+    .envelope-back {
+      position: absolute;
+      inset: 0;
+      background: #c99b75;
+      border-radius: 5px;
+      z-index: 1;
+    }
+
+    .letter-inside {
+      position: absolute;
+      left: 8%;
+      bottom: 8%;
+      width: 84%;
+      height: 82%;
+      background: #fff5e7;
+      border-radius: 3px;
+      z-index: 2;
+      transition: transform 1s ease;
+    }
+
+    .letter-inside::before {
+      content: "♡";
+      display: block;
+      margin-top: 20px;
+      color: #ad5d68;
+      font-size: 35px;
+      text-align: center;
+    }
+
+    .seal {
+      position: absolute;
+      left: 50%;
+      top: 56%;
+      transform: translate(-50%, -50%);
+      z-index: 4;
+      display: grid;
+      place-items: center;
+      width: 53px;
+      height: 53px;
+      border-radius: 50%;
+      background: #a83e51;
+      color: #fff0df;
+      font-size: 27px;
+      box-shadow: 0 3px 10px #0003;
+      transition: opacity 0.4s ease;
+    }
+
+    /* Hiệu ứng mở phong thư */
+    .envelope-wrap.opening {
+      animation: none;
+      pointer-events: none;
+    }
+
+    .envelope-wrap.opening .letter-inside {
+      transform: translateY(-85%) scale(1.04);
+      z-index: 5;
+    }
+
+    .envelope-wrap.opening .seal {
+      opacity: 0;
+    }
+
+    .envelope-wrap.opening .envelope {
+      animation: envelopeZoom 1.2s ease forwards;
+    }
+
+    @keyframes floatEnvelope {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    @keyframes envelopeZoom {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.12); }
+    }
+
+    /* =========================
+       3. MÀN HÌNH ẢNH NỀN
+       ========================= */
+    .movie-screen {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      background: #171322;
+
+      /*
+        THAY ẢNH NỀN TẠI ĐÂY:
+        Đặt ảnh cùng thư mục với index.html
+        và đặt tên là background.jpg
+      */
+      background-image: url("background.jpg");
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 1.8s ease, visibility 1.8s ease;
+    }
+
+    .movie-screen.show {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    /* Lớp phủ giúp chữ dễ đọc trên ảnh */
+    .movie-screen::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background:
+        linear-gradient(
+          to bottom,
+          rgba(0, 0, 0, 0.18),
+          rgba(0, 0, 0, 0.35) 40%,
+          rgba(0, 0, 0, 0.58)
+        );
+    }
+
+    /* =========================
+       4. CHỮ CHẠY TỪ DƯỚI LÊN
+       ========================= */
+    .credits-window {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      overflow: hidden;
+
+      /* Làm mờ nhẹ vùng đầu và cuối để giống phim */
+      -webkit-mask-image: linear-gradient(
+        to bottom,
+        transparent 0%,
+        black 12%,
+        black 85%,
+        transparent 100%
+      );
+      mask-image: linear-gradient(
+        to bottom,
+        transparent 0%,
+        black 12%,
+        black 85%,
+        transparent 100%
+      );
+    }
+
+    .credits {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      width: 100%;
+      padding: 0 26px;
+      color: #fff8ef;
+      text-align: center;
+      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.85);
+
+      /*
+        Chữ bắt đầu ở dưới màn hình rồi chạy lên.
+        Thay 35s để điều chỉnh tốc độ:
+        - 20s: nhanh hơn
+        - 45s: chậm hơn
+      */
+      transform: translateY(100vh);
+      opacity: 0;
+    }
+
+    .movie-screen.show .credits {
+      animation: rollCredits 35s linear 0.8s forwards;
+    }
+
+    @keyframes rollCredits {
+      0% {
+        transform: translateY(100vh);
+        opacity: 0;
+      }
+
+      5% {
+        opacity: 1;
+      }
+
+      92% {
+        opacity: 1;
+      }
+
+      100% {
+        transform: translateY(-100%);
+        opacity: 0;
+      }
+    }
+
+    .credits h1 {
+      font-size: clamp(28px, 5vw, 48px);
+      line-height: 1.4;
+      font-weight: normal;
+      letter-spacing: 2px;
+      margin-bottom: 45px;
+      color: #ffe2bd;
+    }
+
+    .credits p {
+      max-width: 780px;
+      margin: 0 auto 30px;
+      font-size: clamp(18px, 3vw, 25px);
+      line-height: 1.9;
+      white-space: pre-line;
+    }
+
+    .credits .ending {
+      margin-top: 65px;
+      margin-bottom: 35vh;
+      color: #ffe2bd;
+      font-size: clamp(24px, 4vw, 36px);
+    }
+
+    /* Tương thích màn hình điện thoại */
+    @media (max-width: 600px) {
+      .hint {
+        font-size: 13px;
+        letter-spacing: 1.5px;
+      }
+
+      .credits {
+        padding: 0 22px;
+      }
+
+      .credits p {
+        line-height: 1.8;
+        margin-bottom: 24px;
+      }
+    }
+
+    /* Tôn trọng thiết lập giảm chuyển động của thiết bị */
+    @media (prefers-reduced-motion: reduce) {
+      .envelope-wrap {
+        animation: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ==========================================
+       MÀN HÌNH BAN ĐẦU: CHỈ CÓ PHONG THƯ
+       ========================================== -->
+  <section class="envelope-screen" id="envelopeScreen">
+    <div
+      class="envelope-wrap"
+      id="envelopeButton"
+      role="button"
+      tabindex="0"
+      aria-label="Bấm để mở bức thư"
+    >
+      <div class="hint">DÀNH RIÊNG CHO BẠN</div>
+
+      <div class="envelope">
+        <div class="envelope-back"></div>
+        <div class="letter-inside"></div>
+        <div class="seal">♥</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================
+       MÀN HÌNH SAU KHI MỞ THƯ
+       ========================================== -->
+  <main class="movie-screen" id="movieScreen">
+
+    <div class="credits-window">
+      <article class="credits" id="letterContent">
+
+        <!-- =====================================
+             THAY NỘI DUNG BỨC THƯ TẠI ĐÂY
+             Bạn có thể thêm hoặc xóa các đoạn <p>
+             ===================================== -->
+
+        <h1>Gửi người đặc biệt của anh...</h1>
+
+        <p>
+Có những điều thật khó để nói thành lời,
+nên anh muốn viết chúng thành một bức thư.
+
+Anh không biết em sẽ đọc những dòng này
+vào lúc nào, nhưng anh hy vọng rằng
+khi nhìn thấy chúng, em sẽ mỉm cười.
+        </p>
+
+        <p>
+Cảm ơn em vì đã xuất hiện,
+vì những câu chuyện nhỏ,
+những khoảnh khắc bình thường
+mà đôi khi lại trở nên thật đáng nhớ.
+
+Có những niềm vui chẳng cần điều gì lớn lao,
+chỉ cần một người để sẻ chia
+cũng đủ khiến một ngày trở nên đặc biệt.
+        </p>
+
+        <p>
+Anh mong em luôn giữ được nụ cười của mình,
+luôn có đủ can đảm để theo đuổi điều em thích
+và luôn gặp được những điều dịu dàng
+trên hành trình phía trước.
+        </p>
+
+        <p>
+Nếu có một điều anh muốn gửi gắm qua lá thư này,
+thì đó là lời cảm ơn vì em đã là chính em.
+
+Mong rằng khi đọc đến đây,
+em sẽ cảm nhận được một chút ấm áp
+mà anh đã gửi vào từng dòng chữ.
+        </p>
+
+        <p class="ending">
+          Mong những điều tốt đẹp nhất
+          sẽ luôn đến với em. ♡
+        </p>
+
+      </article>
+    </div>
+  </main>
+
+  <!-- ==========================================
+       NHẠC NỀN
+       THAY music.mp3 BẰNG TÊN FILE NHẠC CỦA BẠN
+       Đặt file nhạc cùng thư mục với index.html
+       ========================================== -->
+  <audio id="backgroundMusic" src="music.mp3" preload="auto"></audio>
+
+  <script>
+    // ==========================================
+    // CÁC THÀNH PHẦN TRÊN TRANG
+    // ==========================================
+    const envelopeScreen = document.getElementById("envelopeScreen");
+    const envelopeButton = document.getElementById("envelopeButton");
+    const movieScreen = document.getElementById("movieScreen");
+    const backgroundMusic = document.getElementById("backgroundMusic");
+
+    let hasOpened = false;
+
+    // ==========================================
+    // HÀM MỞ THƯ
+    // ==========================================
+    function openLetter() {
+      // Ngăn mở nhiều lần
+      if (hasOpened) return;
+      hasOpened = true;
+
+      // Bắt đầu hiệu ứng mở phong thư
+      envelopeButton.classList.add("opening");
+
+      // Phát nhạc ngay sau thao tác bấm của người dùng.
+      // Trình duyệt có thể chặn nhạc nếu không có thao tác này.
+      backgroundMusic.volume = 0.7;
+
+      const playPromise = backgroundMusic.play();
+
+      if (playPromise !== undefined) {
+        playPromise.catch((error) => {
+          console.warn(
+            "Không thể tự phát nhạc. Hãy kiểm tra file music.mp3.",
+            error
+          );
+        });
+      }
+
+      // Sau khi phong thư mở, chuyển sang ảnh nền toàn màn hình
+      setTimeout(() => {
+        movieScreen.classList.add("show");
+        envelopeScreen.classList.add("hide");
+      }, 850);
+    }
+
+    // Bấm hoặc chạm vào phong thư để mở
+    envelopeButton.addEventListener("click", openLetter);
+
+    // Hỗ trợ bàn phím Enter và phím cách
+    envelopeButton.addEventListener("keydown", function(event) {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openLetter();
+      }
+    });
+  </script>
+
+</body>
+</html>
